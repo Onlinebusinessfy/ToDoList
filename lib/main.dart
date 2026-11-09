@@ -10,11 +10,11 @@ void main() {
   runApp(const TodoApp());
 }
 
-class TodoApp extends StatelessWidget { // Creo la app principal y le quito el banner de debug.
+class TodoApp extends StatelessWidget {
   const TodoApp({super.key});
 
   @override
-  Widget build(BuildContext context) { // Creo la app principal y le quito el banner de debug.
+  Widget build(BuildContext context) {
     return const MaterialApp(
       debugShowCheckedModeBanner: false,
       home: TodoPage(),
@@ -22,11 +22,11 @@ class TodoApp extends StatelessWidget { // Creo la app principal y le quito el b
   }
 }
 
-class TodoPage extends StatefulWidget { // Creo la página principal de la app.
+class TodoPage extends StatefulWidget {
   const TodoPage({super.key});
 
   @override
-  State<TodoPage> createState() => _TodoPageState(); // Creo el estado de la página principal.
+  State<TodoPage> createState() => _TodoPageState();
 }
 
 class _TodoPageState extends State<TodoPage> {
@@ -41,11 +41,24 @@ class _TodoPageState extends State<TodoPage> {
     'tarea3',
   ];
 
-  // Agrego la tarea escrita y limpio el campo de texto.
+  // Agrego la tarea si no existe y limpio el campo.
   void agregarTarea() {
     final texto = controlador.text.trim();
 
     if (texto.isEmpty) return;
+
+    // Verifico si la tarea ya existe.
+    if (tareas.any(
+      (tarea) => tarea.toLowerCase() == texto.toLowerCase(),
+    )) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Esta tarea ya existe.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
 
     setState(() {
       tareas.add(texto);
@@ -75,18 +88,39 @@ class _TodoPageState extends State<TodoPage> {
           ),
           TextButton(
             onPressed: () {
-              if (editor.text.trim().isNotEmpty) {
-                setState(() {
-                  tareas[index] = editor.text.trim();
-                });
-                Navigator.pop(context);
+              final nuevoTexto = editor.text.trim();
+
+              if (nuevoTexto.isEmpty) return;
+
+              // Verifico que no exista otra tarea con el mismo nombre.
+              if (tareas.asMap().entries.any(
+                (entry) =>
+                    entry.key != index &&
+                    entry.value.toLowerCase() == nuevoTexto.toLowerCase(),
+              )) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Esta tarea ya existe.'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                return;
               }
+
+              setState(() {
+                tareas[index] = nuevoTexto;
+              });
+
+              Navigator.pop(context);
+              editor.dispose();
             },
             child: const Text('Guardar'),
           ),
         ],
       ),
-    );
+    ).then((_) {
+      editor.dispose();
+    });
   }
 
   // Quito de la lista la tarea seleccionada.
@@ -103,7 +137,7 @@ class _TodoPageState extends State<TodoPage> {
   }
 
   @override
-  Widget build(BuildContext context) { // Construyo la interfaz de la app.
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
